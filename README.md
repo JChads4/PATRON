@@ -15,7 +15,7 @@ Simulation tool for analysing coupled rotational band structures in heavy nuclei
 1. Clone repository:
 ```bash
 git clone https://github.com/JChads4/PATRON.git
-cd RotBandSim
+cd PATRON
 ```
 
 2. Install dependencies:
