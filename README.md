@@ -1,5 +1,5 @@
 
-# Nuclear Rotational Bands Simulation
+# Program for the Analysis of Transfermium ROtational Nuclei - PATRON
 
 Simulation tool for analysing coupled rotational band structures in heavy nuclei through gamma-ray and conversion electron spectroscopy.
 
