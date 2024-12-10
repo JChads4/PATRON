@@ -60,7 +60,7 @@ ROTBANDSIM/
 nucleus:
   Q0: 12.4        # Deformation parameter
   K: 8            # Bandhead K value
-  elem_sym: No    # Element symbol
+  elem_sym: 'No'  # Element symbol - MUST BE QUOTED AS A STRING
   z_num: 102      # Atomic number
   mass: 254       # Mass number
   GK_GR_values: [0.] # gK-gR value(s) to test

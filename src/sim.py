@@ -16,11 +16,28 @@ for dir in ['data/experimental', 'data/level_schemes', 'output']:
     os.makedirs(dir, exist_ok=True)
 
 
+# def load_config(config_name):
+#     with open(f'configs/{config_name}.yaml', 'r') as f:
+#         config = yaml.safe_load(f)
+        
+#     # Evaluate GK_GR expression if it contains calculation
+#     if isinstance(config['nucleus']['GK_GR_values'][0], str):
+#         z_num = config['nucleus']['z_num']
+#         mass = config['nucleus']['mass']
+#         expr = config['nucleus']['GK_GR_values'][0].replace('(101/249)', f'({z_num}/{mass})')
+#         config['nucleus']['GK_GR_values'] = [eval(expr)]
+    
+    # return config
+
 def load_config(config_name):
     with open(f'configs/{config_name}.yaml', 'r') as f:
         config = yaml.safe_load(f)
-        
-    # Evaluate GK_GR expression if it contains calculation
+    
+    # Validate element symbol is a string
+    elem_sym = config['nucleus']['elem_sym']
+    if not isinstance(elem_sym, str):
+        raise ValueError(f"Element symbol must be a quoted string in config, got {type(elem_sym)}")
+    
     if isinstance(config['nucleus']['GK_GR_values'][0], str):
         z_num = config['nucleus']['z_num']
         mass = config['nucleus']['mass']

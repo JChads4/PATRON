@@ -40,7 +40,7 @@ def simulate_decay_monteCarlo(levels: List[EnergyLevel]) -> pd.DataFrame:
     """Vectorised Monte Carlo simulation of nuclear decay."""
     decay_data = {'Level': [], 'M1': [], 'E2': []}
     total_nuclei = sum(level.population for level in levels)
-    print(f'Total Nuclei at beginning = {int(total_nuclei)}')
+    # print(f'Total Nuclei at beginning = {int(total_nuclei)}')
     
     for current_level in levels:
         # Vectorized decay decisions
@@ -66,8 +66,8 @@ def simulate_decay_monteCarlo(levels: List[EnergyLevel]) -> pd.DataFrame:
         decay_data['E2'].append(current_level.transitions_count['i-2'])
         current_level.population = 0
 
-    print(f'Sum of M1s = {sum(decay_data["M1"])}')
-    print(f'Sum of E2s = {sum(decay_data["E2"])}')
+    # print(f'Sum of M1s = {sum(decay_data["M1"])}')
+    # print(f'Sum of E2s = {sum(decay_data["E2"])}')
     return pd.DataFrame(decay_data)[::-1]
 
 def process_transition(i, E2, M1, Level_energy, norm_pop, GK_GR, config):
@@ -75,11 +75,15 @@ def process_transition(i, E2, M1, Level_energy, norm_pop, GK_GR, config):
     K = config['nucleus']['K']
     Q0 = config['nucleus']['Q0'] 
     elem_sym = config['nucleus']['elem_sym']
+    # print(f"Debug - Element symbol: {elem_sym}, type: {type(elem_sym)}")  
     
     cg_BM1, cg_BE2_str, cg_BE2_non_str = calculate_cg(i, K)
+    # print(f"CG coefficients: BM1={cg_BM1}, BE2_str={cg_BE2_str}, BE2_non_str={cg_BE2_non_str}")
     delta = 1e12 if GK_GR == 0 else 0.93 * (M1 / 1000) * Q0 / (abs(GK_GR) * sympy_sqrt((i ** 2) - 1))
+    # print(f"Mixing ratio delta={delta}")
     
     alphas = calculate_conversion_coefficients(elem_sym, [M1], [E2], delta)
+    # print(f"Conversion coefficients: {alphas}")
     alpha_I_min_1 = alphas['I-1_Tot'].get(M1, 0.0)
     alpha_I_min_2 = alphas['I-2_Tot'].get(E2, 0.0)
     
@@ -151,6 +155,7 @@ def add_recoils_to_df(df: pd.DataFrame, total_recoils: int) -> pd.DataFrame:
     df['population'] = df['recoils']
     return df
 
+
 @lru_cache(maxsize=256)
 def calculate_conversion_coefficients(elem: str, M1_energies: List[float], 
                                    E2_energies: List[float], delta: float) -> Dict:
@@ -159,6 +164,12 @@ def calculate_conversion_coefficients(elem: str, M1_energies: List[float],
               'N-tot', 'O-tot', 'P-tot', 'Q-tot']
     alphas = {f'I-1_{shell}': {} for shell in shells}
     alphas.update({f'I-2_{shell}': {} for shell in shells})
+
+    if not isinstance(elem, str) or elem == 'False':
+        # print(f"ERROR: Invalid element symbol: {elem}")
+        return
+
+    # print(f"Debug - Processing ICC for element: {elem}")
 
     try:
         for M1_energy in M1_energies:
@@ -398,6 +409,11 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
                e_E2_peak = gaussian(e_E2_range, e_E2_area, electron_energy_e2, elec_sigma_e2)
                total_electron_intensity += np.interp(total_energy_range, e_E2_range, e_E2_peak, left=0, right=0)
 
+            #    print(f"Electron raw intensity: {e_subshell_intensity_i_1}")
+            #    print(f"Electron efficiency correction: {elec_efficiency(electron_energy_m1, *elec_eff_params)}")
+            #    print(f"Area after bin width: {e_M1_area}")
+            #    print(f"Final peak height: {np.max(e_M1_peak)}")
+
        # Gamma histogram
        gamma_bin_edges = np.arange(0, 500 + gamma_bin_width, gamma_bin_width)
        gamma_binned_intensity, _ = np.histogram(total_energy_range, bins=gamma_bin_edges, weights=total_gamma_intensity)
@@ -442,9 +458,9 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
            # PERFORM NORMALISATION
            if normalise_simulated_spectra and exp_gamma_spectrum:
                norm_gamma_counts = sum_counts_in_range(gcounts, genergy, (gamma_peak-gamma_range, gamma_peak+gamma_range))
-               print(norm_gamma_counts)
+            #    print(norm_gamma_counts)
                norm_gamma_area = norm_gamma_counts
-               print(norm_gamma_counts, norm_gamma_area)
+            #    print(norm_gamma_counts, norm_gamma_area)
                g_bins, gamma_binned_intensity, e_bins, electron_binned_intensity = normalise_spectra_by_gamma_area(
                    electron_bin_edges, electron_binned_intensity, gamma_bin_edges, gamma_binned_intensity, 
                    gamma_peak, gamma_range, norm_gamma_area, f'{gk_gr_value:.2f}'
@@ -458,8 +474,8 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
                               electron_binned_intensity[electron_bin_centers>hv_barrier], 
                               step="pre", color=color, alpha=0.2)
                               
-       ax_gamma.step(gamma_bin_centers[gamma_bin_centers>hv_barrier], 
-                    gamma_binned_intensity[gamma_bin_centers>hv_barrier], 
+       ax_gamma.step(gamma_bin_centers, 
+                    gamma_binned_intensity, 
                     where='pre', color=color, linewidth=1, 
                     label=r'$(gK-gR) = {:.2f}$'.format(gk_gr_value))
        ax_gamma.fill_between(gamma_bin_centers, gamma_binned_intensity, 
@@ -541,12 +557,12 @@ def normalise_electron_spectra(e_bins, e_counts, norm_value):
     
     # Calculate the normalisation factor
     norm_factor = norm_value / total_area_simulated
-    print(f'############ ELECTRON NORMALISATION FACTOR = {norm_factor} #################')
+    # print(f'############ ELECTRON NORMALISATION FACTOR = {norm_factor} #################')
     
     # Normalise the counts of the simulated spectrum
     normalised_e_counts = simulated_e_counts * norm_factor
 
-    print(f"Sum of sim counts = {np.sum(normalised_e_counts)}, Total electron exp counts = {norm_value}")
+    # print(f"Sum of sim counts = {np.sum(normalised_e_counts)}, Total electron exp counts = {norm_value}")
     
     return normalised_e_counts
 
@@ -561,13 +577,13 @@ def normalise_spectra(e_bins, e_counts, g_counts, norm_value):
     
     # Calculate the normalisation factor
     norm_factor = norm_value / total_area_simulated
-    print(f'############ ELECTRON NORMALISATION FACTOR = {norm_factor} #################')
+    # print(f'############ ELECTRON NORMALISATION FACTOR = {norm_factor} #################')
     
     # Normalise the counts of the simulated spectrum
     normalised_e_counts = simulated_e_counts * norm_factor
     normalised_g_counts = simulated_g_counts * norm_factor
 
-    print(f"Sum of sim counts = {np.sum(normalised_e_counts)}, Total electron exp counts = {norm_value}")
+    # print(f"Sum of sim counts = {np.sum(normalised_e_counts)}, Total electron exp counts = {norm_value}")
     
     return normalised_e_counts, normalised_g_counts
 
@@ -589,7 +605,7 @@ def normalise_spectra_by_gamma_area(e_bins, e_counts, g_bins, g_counts, peak, ga
     background_sim_counts_right = sum_counts_in_range(g_counts, g_bins[:-1], (peak+gamma_range, peak+gamma_range+(gamma_range)))
     background_sim_counts = background_sim_counts_left + background_sim_counts_right
     sim_area = (sim_counts - background_sim_counts) * np.diff(g_bins)[0]
-    print(f"g_bins = {np.diff(g_bins)[0]}, sim_area = {sim_area}, exp area = {norm_value:.2f}")
+    # print(f"g_bins = {np.diff(g_bins)[0]}, sim_area = {sim_area}, exp area = {norm_value:.2f}")
 
     fig, axs = plt.subplots(1, 1, figsize=(16, 12))
     axs.stairs(g_counts, g_bins, label='Normalised Gamma Counts')
@@ -603,7 +619,7 @@ def normalise_spectra_by_gamma_area(e_bins, e_counts, g_bins, g_counts, peak, ga
     
     # norm_factor = norm_value / sim_peak_counts
     norm_factor = norm_value / sim_area
-    print(f'############ {label} NORMALISATION FACTOR = {norm_factor} #################')
+    # print(f'############ {label} NORMALISATION FACTOR = {norm_factor} #################')
     g_counts = g_counts * norm_factor
     e_counts = e_counts * norm_factor
 
@@ -730,6 +746,16 @@ def calculate_intensities(df, total_recoils):
 
     df['Electron Intensity I-1'] = df['Gamma Intensity I-1'] * df['Alpha I-1']
     df['Electron Intensity I-2'] = df['Gamma Intensity I-2'] * df['Alpha I-2']
+
+    # print("Gamma I-1:", df['Gamma Intensity I-1'])
+    # print("Alpha I-1:", df['Alpha I-1'])
+    # print("Resulting Electron I-1:", df['Electron Intensity I-1'])
+
+    # print(f"Calculating intensities for level {df['Initial Spin']}")
+    # print(f"M1 transitions: {df['M1']}")
+    # print(f"E2 transitions: {df['E2']}")
+    # print(f"Alpha I-1: {df['Alpha I-1']}")
+    # print(f"Alpha I-2: {df['Alpha I-2']}")
 
     # Now we should normalise the intensities, or not.
     # norm_value = 1
