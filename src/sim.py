@@ -79,7 +79,7 @@ def main():
         dfs[label] = calculate_intensities(df, config['nucleus']['total_recoils'])
 
     # Plot spectra
-    plot_combined_spectra(
+    binned_data = plot_combined_spectra(
         dfs, 
         config['nucleus']['elem_sym'],
         gamma_bin_width=1,
@@ -98,6 +98,31 @@ def main():
         theory_gK_vals=config['theory']['gK_vals']
     )
     plt.show()
+    plt.close()
+
+    # print("\nDEBUG: Binned data received:")
+    # print(f"Gamma bin centers shape: {binned_data['gamma_bin_centers'].shape}")
+    # print(f"Gamma intensity shape: {binned_data['gamma_binned_intensity'].shape}")
+    # print(f"Example gamma values: {binned_data['gamma_binned_intensity'][:5]}")
+
+    # Perform statistical analysis if enabled
+    if config['experiment']['statistical_analysis']['enabled']:
+        analysis_results = perform_statistical_analysis(
+            dfs=dfs,
+            config=config,
+            binned_data=binned_data
+        )
+        
+        # Print summary if desired
+        # if analysis_results:
+        #     print("\nStatistical Analysis Summary:")
+        #     print("Gamma spectrum analysis:")
+        #     for conf in analysis_results['gamma']:
+        #         print(f"gK-gR = {conf['gk_gr']:.2f}: p-value = {conf['p_value']:.4f}")
+        #     print("\nElectron spectrum analysis:")
+        #     for conf in analysis_results['electron']:
+        #         print(f"gK-gR = {conf['gk_gr']:.2f}: p-value = {conf['p_value']:.4f}")
+
 
 if __name__ == '__main__':
     main()

@@ -314,6 +314,7 @@ def calculate_chisq(observed: np.ndarray, expected: np.ndarray) -> float:
     chisq = np.sum(((observed - expected) ** 2) / expected)
     return chisq / len(observed)
 
+
 def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3, 
                          gam_eff_params = [1.866, -0.627, -0.201, 0.246, -0.0779] , gam_fwhm = [0.0013, 1.8302], 
                          elec_eff_params = [1.273,-1.541, -0.943, -0.128, -0.00137], elec_fwhm= [0.0040, 5.8762],
@@ -329,7 +330,7 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
    gR_line_styles = {gR: linestyle for gR, linestyle in zip(theory_gR_vals, ['-', '--', '-.', ':'])}
 
    width = 12
-   fig, (ax_gamma, ax_electron) = plt.subplots(2, 1, figsize=(width, width*3))
+   fig, (ax_gamma, ax_electron) = plt.subplots(2, 1, figsize=(width, width*3)) # normal
    fig.patch.set_alpha(0.)
    plt.subplots_adjust(hspace=0.5)
    fs = 22
@@ -345,6 +346,12 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
    gk_gr_chisq_values = []
    elec_chisq_values = []
    gam_chisq_values = []
+   
+   final_binned_data = {
+        'gamma_bin_centers': None,
+        'electron_bin_centers': None,
+        'intensities': {}
+    }
 
    # Loop through each DataFrame in the dictionary
    for idx, (label, df) in enumerate(dfs.items()):
@@ -423,6 +430,7 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
        electron_bin_edges = np.arange(0, 500 + electron_bin_width, electron_bin_width)
        electron_binned_intensity, _ = np.histogram(total_energy_range, bins=electron_bin_edges, weights=total_electron_intensity)
        electron_bin_centers = 0.5 * (electron_bin_edges[:-1] + electron_bin_edges[1:])
+
            
        # LOAD ELECTRONS
        if show_exp_spectra:
@@ -458,14 +466,30 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
            # PERFORM NORMALISATION
            if normalise_simulated_spectra and exp_gamma_spectrum:
                norm_gamma_counts = sum_counts_in_range(gcounts, genergy, (gamma_peak-gamma_range, gamma_peak+gamma_range))
-            #    print(norm_gamma_counts)
                norm_gamma_area = norm_gamma_counts
-            #    print(norm_gamma_counts, norm_gamma_area)
-               g_bins, gamma_binned_intensity, e_bins, electron_binned_intensity = normalise_spectra_by_gamma_area(
+               # Gamma area normalisation
+               _, gamma_binned_intensity, _, electron_binned_intensity = normalise_spectra_by_gamma_area(
                    electron_bin_edges, electron_binned_intensity, gamma_bin_edges, gamma_binned_intensity, 
                    gamma_peak, gamma_range, norm_gamma_area, f'{gk_gr_value:.2f}'
                )
+               # Electron total area normalisation
+            #    total_electron_counts = sum_counts_in_range(counts, energy, (80, 1000))
+            #    total_electron_area = total_electron_counts * np.diff(energy)[0]
+            #    electron_binned_intensity, gamma_binned_intensity = normalise_spectra(electron_bin_edges[:-1], electron_binned_intensity, gamma_binned_intensity, total_electron_area)
 
+            # Normalise by recoil number
+
+
+
+
+        # Store intensities for this specific configuration
+       final_binned_data['gamma_bin_centers'] = gamma_bin_centers
+       final_binned_data['electron_bin_centers'] = electron_bin_centers
+       final_binned_data['intensities'][label] = {
+            'gamma': gamma_binned_intensity.copy(),  # Make sure to copy the arrays
+            'electron': electron_binned_intensity.copy()
+        }
+       
        ax_electron.step(electron_bin_centers[electron_bin_centers>hv_barrier], 
                        electron_binned_intensity[electron_bin_centers>hv_barrier], 
                        where='pre', color=color, linewidth=1, 
@@ -485,13 +509,15 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
    ax_gamma.set_xlabel('Energy (keV)', fontsize=fs)
    ax_gamma.set_ylabel(f'Intensity / {gamma_bin_width} keV', fontsize=fs)
    ax_gamma.set_xlim(0,1000)
+#    ax_gamma.set_ylim(0,2*max(gamma_binned_intensity))
    ax_gamma.set_title('Gamma Spectra', fontsize=fs)
    ax_gamma.legend(loc='upper right', fontsize=fs - 2)
    ax_gamma.tick_params(axis='both', which='major', labelsize=fs - 2)
 
    ax_electron.set_xlabel('Energy (keV)', fontsize=fs)
    ax_electron.set_ylabel(f'Intensity / {electron_bin_width} keV', fontsize=fs)
-   ax_electron.set_ylim(bottom=0)
+   ax_electron.set_xlim(0,1000) 
+#    ax_electron.set_ylim(0,2*max(electron_binned_intensity))
    ax_electron.set_title('Simulated Electron Spectra', fontsize=fs)
    ax_electron.legend(loc='upper right', fontsize=fs - 2)
    ax_electron.tick_params(axis='both', which='major', labelsize=fs - 2)
@@ -544,6 +570,8 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
                     ax_chisq_electron.axvline(diff, color=color, linestyle=linestyle)
 
            plt.legend(fontsize=fs - 2)
+           
+           return final_binned_data
 
 
 
@@ -573,13 +601,16 @@ def normalise_spectra(e_bins, e_counts, g_counts, norm_value):
     simulated_g_counts = g_counts
 
     # Integrate the counts of the simulated electron spectrum to get the total area
-    total_area_simulated = np.sum(simulated_e_counts * np.diff(simulated_e_bins))
+    # total_area_simulated = np.sum(simulated_e_counts * np.diff(simulated_e_bins))
+    total_area_simulated = np.trapz(simulated_e_counts, x=simulated_e_bins)
+
     
     # Calculate the normalisation factor
     norm_factor = norm_value / total_area_simulated
     # print(f'############ ELECTRON NORMALISATION FACTOR = {norm_factor} #################')
     
     # Normalise the counts of the simulated spectrum
+
     normalised_e_counts = simulated_e_counts * norm_factor
     normalised_g_counts = simulated_g_counts * norm_factor
 
@@ -761,4 +792,149 @@ def calculate_intensities(df, total_recoils):
     # norm_value = 1
 
     return df
+
+def perform_statistical_analysis(dfs, config, binned_data):
+    """Perform statistical analysis on gamma and electron spectra."""
+    
+    if not config['experiment']['statistical_analysis']['enabled']:
+        return {}
+        
+    cum_gamma_range = config['experiment']['statistical_analysis']['cum_gamma_range']
+    cum_electron_range = config['experiment']['statistical_analysis']['cum_electron_range']
+    
+    configs_gamma = []
+    configs_electron = []
+    
+    if config['experiment']['show_exp_spectra']:
+        # Process experimental data
+        if config['files']['exp_gamma']:
+            exp_gamma_data = np.loadtxt(config['files']['exp_gamma'])
+            exp_gamma_energy, exp_gamma_counts = exp_gamma_data[:, 0], exp_gamma_data[:, 1]
+            exp_gamma_counts[exp_gamma_counts < 0] = 0
+            observed_counts_gamma = sum_counts_in_range(exp_gamma_counts, exp_gamma_energy, cum_gamma_range)
+            sigma_o_gamma = np.sqrt(observed_counts_gamma)
+            
+        if config['files']['exp_electron']:
+            exp_electron_data = np.loadtxt(config['files']['exp_electron'])
+            exp_electron_energy, exp_electron_counts = exp_electron_data[:, 0], exp_electron_data[:, 1]
+            exp_electron_counts[exp_electron_counts < 0] = 0
+            mask = exp_electron_energy > config['experiment']['hv_barrier']
+            exp_electron_energy = exp_electron_energy[mask]
+            exp_electron_counts = exp_electron_counts[mask]
+            observed_counts_electron = sum_counts_in_range(exp_electron_counts, exp_electron_energy, cum_electron_range)
+            sigma_o_electron = np.sqrt(observed_counts_electron)
+        
+        # Process each configuration
+        for label, intensities in binned_data['intensities'].items():
+            gk_gr_value = float(label.split('_')[-1])
+            
+            # Process gamma spectrum
+            mean_counts_gamma = sum_counts_in_range(
+                intensities['gamma'], 
+                binned_data['gamma_bin_centers'], 
+                cum_gamma_range
+            )
+            sigma_counts_gamma = np.sqrt(mean_counts_gamma)
+            configs_gamma.append({
+                'mean': mean_counts_gamma,
+                'sigma': sigma_counts_gamma,
+                'label': f'(gK-gR)={gk_gr_value:.2f}',
+                'color': f'C{len(configs_gamma)}'  # Different color for each config
+            })
+            
+            # Process electron spectrum
+            mean_counts_electron = sum_counts_in_range(
+                intensities['electron'], 
+                binned_data['electron_bin_centers'], 
+                cum_electron_range
+            )
+            sigma_counts_electron = np.sqrt(mean_counts_electron)
+            configs_electron.append({
+                'mean': mean_counts_electron,
+                'sigma': sigma_counts_electron,
+                'label': f'(gK-gR)={gk_gr_value:.2f}',
+                'color': f'C{len(configs_electron)}'
+            })
+        
+        # Generate plots
+        plot_statistical_analysis(
+            configs_gamma, 
+            configs_electron,
+            observed_counts_gamma,
+            observed_counts_electron,
+            sigma_o_gamma,
+            sigma_o_electron,
+            config
+        )
+
+        return {
+            'gamma': configs_gamma,
+            'electron': configs_electron
+        }
+
+    return {}
+
+def plot_statistical_analysis(configs_gamma: List[Dict], configs_electron: List[Dict],
+                            obs_gamma: float, obs_electron: float,
+                            sigma_o_gamma: float, sigma_o_electron: float,
+                            config: Dict) -> None:
+    """Generate statistical analysis plots."""
+    fig, (ax_gamma, ax_electron) = plt.subplots(1, 2, figsize=(12, 5))
+    fs = 14
+
+    
+    
+    # Plot gamma analysis
+    x_gamma = np.linspace(0, 2*obs_gamma, 1000)
+    for conf in configs_gamma:
+        sigma_combined = np.sqrt(conf['sigma']**2 + sigma_o_gamma**2)
+        y = norm.pdf(x_gamma, conf['mean'], sigma_combined)
+        D = obs_gamma - conf['mean']
+        ax_gamma.plot(x_gamma, y, label=conf['label'])
+        ax_gamma.fill_between(x_gamma, 0, y, 
+                            where=(np.abs(x_gamma - conf['mean']) >= np.abs(D)),
+                            alpha=0.3)
+        
+    # Add experimental point with error bar for gamma
+    ax_gamma.errorbar(obs_gamma, 0.5*max(norm.pdf(x_gamma, conf['mean'], sigma_combined)), 
+                     xerr=sigma_o_gamma, 
+                     fmt='ko', 
+                     capsize=5,
+                     capthick=2,
+                     label='Experiment')
+        
+    # Plot electron analysis
+    x_electron = np.linspace(0, 2*obs_electron, 1000)
+    for conf in configs_electron:
+        sigma_combined = np.sqrt(conf['sigma']**2 + sigma_o_electron**2)
+        y = norm.pdf(x_electron, conf['mean'], sigma_combined)
+        D = obs_electron - conf['mean']
+        ax_electron.plot(x_electron, y, label=conf['label'])
+        ax_electron.fill_between(x_electron, 0, y,
+                               where=(np.abs(x_electron - conf['mean']) >= np.abs(D)),
+                               alpha=0.3)
+        
+    # Add experimental point with error bar for electron
+    ax_electron.errorbar(obs_electron, 0.5*max(norm.pdf(x_electron, conf['mean'], sigma_combined)), 
+                        xerr=sigma_o_electron, 
+                        fmt='ko', 
+                        capsize=5,
+                        capthick=2,
+                        label='Experiment')
+    
+    # Configure plots
+    ax_gamma.set_title('Gamma Analysis', fontsize=fs)
+    ax_electron.set_title('Electron Analysis', fontsize=fs)
+    ax_gamma.set_xlabel('Counts', fontsize=fs-2)
+    ax_electron.set_xlabel('Counts', fontsize=fs-2)
+    ax_gamma.set_ylabel('Probability Density', fontsize=fs-2)
+    ax_gamma.legend(fontsize=fs-4)
+    ax_electron.legend(fontsize=fs-4)
+    # ax_gamma.set_ylim(0,1)
+    # ax_electron.set_ylim(0,1)
+    
+    plt.tight_layout()
+    plt.savefig('output/statistical_analysis.png', bbox_inches='tight')
+    plt.show()
+    plt.close()
 
