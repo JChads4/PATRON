@@ -2,27 +2,32 @@
 nucleus:
  Q0: 12.4
  K: 8
- elem_sym: No
+ elem_sym: 'No'
  z_num: 102
  mass: 254
- GK_GR_values: [0.]
+ GK_GR_values: [0.3]
  total_recoils: 10000000
  gamma_peak: 257
- gamma_range: 3
+ gamma_range: 6
 
 files:
  level_scheme: data/level_schemes/254No_isomer.txt
- exp_electron: data/experimental/254No_IT_electrons.dat
+ exp_electron: data/experimental/254No_IT_electrons_s13.dat
  exp_gamma: data/experimental/254No_IT_gammas_bkgsub.dat
 
 experiment:
- hv_barrier: 25
+ hv_barrier: 38
  normalise_spectra: true
  show_exp_spectra: true
  elec_eff_params: [1.273, -1.541, -0.943, -0.128, -0.00137]
  gam_eff_params: [1.866, -0.627, -0.201, 0.246, -0.0779]
  elec_fwhm: [0.0040, 5.8762]
  gam_fwhm: [0.0013, 1.8302]
+ statistical_analysis:
+  enabled: true
+  cum_gamma_range: [130, 230]    
+  cum_electron_range: [25, 180]  
+  position_range: [0.3, 0.5]     
 
 theory:
  gR_vals: [0.4, 0.36, 0.32, 0.28]

@@ -81,6 +81,11 @@ experiment:
   gam_eff_params: [1.866, -0.627, -0.201, 0.246, -0.0779]
   elec_fwhm: [0.0040, 5.8762]                                 # [0] = m, [1] = c -> FWHM = m*x + c
   gam_fwhm: [0.0013, 1.8302]                                  # [0] = m, [1] = c -> FWHM = m*x + c
+  statistical_analysis:                                       # For calculating PDF's of expected counts vs observed counts in ranges below.
+   enabled: true                                               
+   cum_gamma_range: [130, 230]                                # User specified energy range in gamma spectrum for PDF analysis.
+   cum_electron_range: [25, 180]                              # User specified energy range in electron spectrum for PDF analysis.
+   position_range: [0.3, 0.5]  
 
 theory:
   gR_vals: [0.4, 0.36, 0.32, 0.28] # Quenched or unquenched values of gR.
