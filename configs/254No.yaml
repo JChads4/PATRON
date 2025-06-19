@@ -5,14 +5,14 @@ nucleus:
  elem_sym: 'No'
  z_num: 102
  mass: 254
- GK_GR_values: [0.3]
+ GK_GR_values: [0.38]
  total_recoils: 10000000
- gamma_peak: 257
- gamma_range: 6
+ gamma_peak: 256
+ gamma_range: 3
 
 files:
  level_scheme: data/level_schemes/254No_isomer.txt
- exp_electron: data/experimental/254No_IT_electrons_s13.dat
+ exp_electron: data/experimental/254No_IT_electrons_bkgsub_s13.dat
  exp_gamma: data/experimental/254No_IT_gammas_bkgsub.dat
 
 experiment:

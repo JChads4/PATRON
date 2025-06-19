@@ -61,7 +61,7 @@ def main():
         
         # Read level scheme
         level_scheme_data = np.loadtxt(config['files']['level_scheme'], 
-                                    delimiter=',', skiprows=2).T
+                                    delimiter=',', skiprows=1).T
         I_initial, _, Energy_E2, Energy_M1, Level_energy, norm_pop = level_scheme_data.astype(float)
 
         # Process transitions
@@ -94,6 +94,7 @@ def main():
         gamma_range=config['nucleus']['gamma_range'],
         show_exp_spectra=config['experiment']['show_exp_spectra'],
         normalise_simulated_spectra=config['experiment']['normalise_spectra'],
+        total_recoils=config['nucleus']['total_recoils'],
         theory_gR_vals=config['theory']['gR_vals'],
         theory_gK_vals=config['theory']['gK_vals']
     )

@@ -281,13 +281,13 @@ def elec_efficiency(energy: float, a: float, b: float, c: float, d: float, e: fl
     """Calculate electron efficiency."""
     x = np.log(energy/320)
     eff = np.exp(a + (b*x) + (c*x**2) + (d*x**3) + (e*x**4))
-    return eff/100
+    return eff
 
 def gamma_efficiency(energy: float, a: float, b: float, c: float, d: float, e: float) -> float:
     """Calculate gamma efficiency."""
     x = np.log(energy/320)
     eff = np.exp(a + (b*x) + (c*x**2) + (d*x**3) + (e*x**4))
-    return eff/100
+    return eff
 
 def err_elec_efficiency(eff: float) -> float:
     """Calculate electron efficiency error."""
@@ -321,7 +321,7 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
                          exp_electron_spectrum = None, exp_gamma_spectrum = None,
                          hv_barrier =25,
                          gamma_peak = 120, gamma_range = 5,
-                         show_exp_spectra = False, normalise_simulated_spectra=False,
+                         show_exp_spectra = False, normalise_simulated_spectra=False,  total_recoils=None,
                          theory_gR_vals=[0.4, 0.36, 0.32, 0.28], theory_gK_vals=[-0.0225, 1.001]):
    
    theory_combinations = [(gK - gR, gK, gR) for gK in theory_gK_vals for gR in theory_gR_vals]
@@ -329,10 +329,10 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
    gK_colors = {gK: color for gK, color in zip(theory_gK_vals, cols)}
    gR_line_styles = {gR: linestyle for gR, linestyle in zip(theory_gR_vals, ['-', '--', '-.', ':'])}
 
-   width = 12
-   fig, (ax_gamma, ax_electron) = plt.subplots(2, 1, figsize=(width, width*3)) # normal
+   width = 8
+   fig, (ax_gamma, ax_electron) = plt.subplots(2, 1, figsize=(width, width), sharex=True) # normal
    fig.patch.set_alpha(0.)
-   plt.subplots_adjust(hspace=0.5)
+   plt.subplots_adjust(hspace=0)
    fs = 22
 
    # Color for the plot
@@ -465,19 +465,38 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
            
            # PERFORM NORMALISATION
            if normalise_simulated_spectra and exp_gamma_spectrum:
-               norm_gamma_counts = sum_counts_in_range(gcounts, genergy, (gamma_peak-gamma_range, gamma_peak+gamma_range))
-               norm_gamma_area = norm_gamma_counts
-               # Gamma area normalisation
-               _, gamma_binned_intensity, _, electron_binned_intensity = normalise_spectra_by_gamma_area(
-                   electron_bin_edges, electron_binned_intensity, gamma_bin_edges, gamma_binned_intensity, 
-                   gamma_peak, gamma_range, norm_gamma_area, f'{gk_gr_value:.2f}'
-               )
+            #    # Gamma peak normalisation
+            #    norm_gamma_counts = sum_counts_in_range(gcounts, genergy, (gamma_peak-gamma_range, gamma_peak+gamma_range))
+            #    norm_gamma_area = norm_gamma_counts
+            #    _, gamma_binned_intensity, _, electron_binned_intensity = normalise_spectra_by_gamma_area(
+            #        electron_bin_edges, electron_binned_intensity, gamma_bin_edges, gamma_binned_intensity, 
+            #        gamma_peak, gamma_range, norm_gamma_area, f'{gk_gr_value:.2f}'
+            #    )
                # Electron total area normalisation
-            #    total_electron_counts = sum_counts_in_range(counts, energy, (80, 1000))
+            #    total_electron_counts = sum_counts_in_range(counts, energy, (77, 500))
             #    total_electron_area = total_electron_counts * np.diff(energy)[0]
             #    electron_binned_intensity, gamma_binned_intensity = normalise_spectra(electron_bin_edges[:-1], electron_binned_intensity, gamma_binned_intensity, total_electron_area)
 
-            # Normalise by recoil number
+            # --- Normalise by recoil number ---
+            # sim_recoils: total simulated recoils pulled from the caller
+                if total_recoils is None:
+                    raise ValueError("total_recoils must be provided for recoil‐number normalisation")
+                sim_recoils = total_recoils
+
+                # exp_recoils: sum of your experimental electrons above the HV barrier
+                exp_recoils = sum_counts_in_range(counts, energy, (hv_barrier, energy.max()))
+
+                # now scale both spectra
+                electron_binned_intensity, gamma_binned_intensity = normalise_spectra_by_recoils(
+                    electron_binned_intensity,
+                    gamma_binned_intensity,
+                    sim_recoils,
+                    exp_recoils
+                )
+
+            
+
+            
 
 
 
@@ -493,7 +512,7 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
        ax_electron.step(electron_bin_centers[electron_bin_centers>hv_barrier], 
                        electron_binned_intensity[electron_bin_centers>hv_barrier], 
                        where='pre', color=color, linewidth=1, 
-                       label=r'($gK$-$gR$) = {:.2f}'.format(gk_gr_value))
+                       label=r'Simulated $e^-$: $(g_K - g_R) = {:.2f}$'.format(gk_gr_value))
        ax_electron.fill_between(electron_bin_centers[electron_bin_centers>hv_barrier], 
                               electron_binned_intensity[electron_bin_centers>hv_barrier], 
                               step="pre", color=color, alpha=0.2)
@@ -501,26 +520,29 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
        ax_gamma.step(gamma_bin_centers, 
                     gamma_binned_intensity, 
                     where='pre', color=color, linewidth=1, 
-                    label=r'$(gK-gR) = {:.2f}$'.format(gk_gr_value))
+                    label=r'Simulated $\gamma$: $(g_K - g_R) = {:.2f}$'.format(gk_gr_value))
        ax_gamma.fill_between(gamma_bin_centers, gamma_binned_intensity, 
                            step="pre", color=color, alpha=0.2)
 
    # Configure axes
-   ax_gamma.set_xlabel('Energy (keV)', fontsize=fs)
+#    ax_gamma.set_xlabel('Energy (keV)', fontsize=fs)
    ax_gamma.set_ylabel(f'Intensity / {gamma_bin_width} keV', fontsize=fs)
-   ax_gamma.set_xlim(0,1000)
+#    ax_gamma.set_xlim(0,500)
 #    ax_gamma.set_ylim(0,2*max(gamma_binned_intensity))
-   ax_gamma.set_title('Gamma Spectra', fontsize=fs)
-   ax_gamma.legend(loc='upper right', fontsize=fs - 2)
+#    ax_gamma.set_title('Gamma Spectra', fontsize=fs)
+   ax_gamma.legend(loc='upper right', fontsize=fs - 4, frameon=True, shadow=True, facecolor='white')
    ax_gamma.tick_params(axis='both', which='major', labelsize=fs - 2)
 
    ax_electron.set_xlabel('Energy (keV)', fontsize=fs)
    ax_electron.set_ylabel(f'Intensity / {electron_bin_width} keV', fontsize=fs)
-   ax_electron.set_xlim(0,1000) 
+   ax_gamma.set_ylim(0,35)
+   ax_electron.set_xlim(20,400) 
 #    ax_electron.set_ylim(0,2*max(electron_binned_intensity))
-   ax_electron.set_title('Simulated Electron Spectra', fontsize=fs)
-   ax_electron.legend(loc='upper right', fontsize=fs - 2)
+#    ax_electron.set_title(r'Simulated $^{254}$No Electron Spectra', fontsize=fs)
+   ax_electron.legend(loc='upper right', fontsize=fs - 4, frameon=True, shadow=True, facecolor='white')
    ax_electron.tick_params(axis='both', which='major', labelsize=fs - 2)
+
+#    ax_gamma.set_visible(False)
 
    # Plot experimental data if available
    if show_exp_spectra:

@@ -1,0 +1,34 @@
+# configs/250Fm.yaml
+nucleus:
+ Q0: 12.4
+ K: 8
+ elem_sym: 'Fm'
+ z_num: 100
+ mass: 250
+ GK_GR_values: [0.26, 0.72]
+ total_recoils: 10000
+ gamma_peak: 167
+ gamma_range: 3
+
+files:
+ level_scheme: data/level_schemes/250Fm_isomer.txt
+ exp_electron: data/experimental/fm250/final_it_sage_bkgsub.dat
+ exp_gamma: data/experimental/fm250/final_it_juro_bkgsub.dat
+
+experiment:
+ hv_barrier: 25
+ normalise_spectra: true
+ show_exp_spectra: true
+ elec_eff_params: [1.273, -1.541, -0.943, -0.128, -0.00137]
+ gam_eff_params: [1.866, -0.627, -0.201, 0.246, -0.0779]
+ elec_fwhm: [0.0040, 5.8762]
+ gam_fwhm: [0.0013, 1.8302]
+ statistical_analysis:
+  enabled: true
+  cum_gamma_range: [130, 230]    # Single range for gamma spectrum analysis
+  cum_electron_range: [25, 180]  # Single range for electron spectrum analysis
+  position_range: [0.3, 0.5]     # For plotting purposes
+
+theory:
+ gR_vals: [0.4, 0.36, 0.32, 0.28]
+ gK_vals: [-0.0225, 1.001]

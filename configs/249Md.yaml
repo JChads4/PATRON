@@ -1,0 +1,34 @@
+# configs/249Md.yaml
+nucleus:
+ Q0: 13
+ K: 3.5
+ elem_sym: Md
+ z_num: 101
+ mass: 249
+ GK_GR_values: [0.66 - (0.7 * (101/249))] # 7/2[514]
+ total_recoils: 10000000
+ gamma_peak: 224
+ gamma_range: 5
+
+files:
+ level_scheme: data/level_schemes/249Md.txt
+ exp_electron: null
+ exp_gamma: data/experimental/249Md_RT_gammas.dat
+
+experiment:
+ hv_barrier: 25
+ normalise_spectra: true
+ show_exp_spectra: true
+ elec_eff_params: [1.273, -1.541, -0.943, -0.128, -0.00137]
+ gam_eff_params: [1.866, -0.627, -0.201, 0.246, -0.0779]
+ elec_fwhm: [0.0040, 5.8762]  
+ gam_fwhm: [0.0013, 1.8302]
+ statistical_analysis:
+  enabled: true
+  cum_gamma_range: [345, 355]    # Single range for gamma spectrum analysis
+  cum_electron_range: [25, 180]  # Single range for electron spectrum analysis
+  position_range: [0.3, 0.5]     # For plotting purposes
+
+theory:
+ gR_vals: [0.4, 0.36, 0.32, 0.28]
+ gK_vals: [-0.0225, 1.001]
