@@ -7,8 +7,6 @@ nucleus:
  mass: 249
  GK_GR_values: [0.66 - (0.7 * (101/249))] # 7/2[514]
  total_recoils: 10000000
- gamma_peak: 224
- gamma_range: 5
 
 files:
  level_scheme: data/level_schemes/249Md.txt
@@ -19,6 +17,8 @@ experiment:
  hv_barrier: 25
  normalise_spectra: true
  normalisation_method: recoil
+ gamma_peak: 224
+ gamma_range: 5
  show_exp_spectra: true
  elec_eff_params: [1.273, -1.541, -0.943, -0.128, -0.00137]
  gam_eff_params: [1.866, -0.627, -0.201, 0.246, -0.0779]

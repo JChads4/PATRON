@@ -7,8 +7,6 @@ nucleus:
  mass: 250
  GK_GR_values: [0.26, 0.72]
  total_recoils: 10000
- gamma_peak: 167
- gamma_range: 3
 
 files:
  level_scheme: data/level_schemes/250Fm_isomer.txt
@@ -19,6 +17,8 @@ experiment:
  hv_barrier: 25
  normalise_spectra: true
  normalisation_method: recoil
+ gamma_peak: 167
+ gamma_range: 3
  show_exp_spectra: true
  elec_eff_params: [1.273, -1.541, -0.943, -0.128, -0.00137]
  gam_eff_params: [1.866, -0.627, -0.201, 0.246, -0.0779]

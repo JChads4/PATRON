@@ -65,8 +65,6 @@ nucleus:
   mass: 254       # Mass number
   GK_GR_values: [0.] # gK-gR value(s) to test
   total_recoils: 10000000
-  gamma_peak: 257  # Peak for normalisation
-  gamma_range: 3   # Range for normalisation
 
 files:
   level_scheme: data/level_schemes/254No_isomer.txt
@@ -77,6 +75,8 @@ experiment:
   hv_barrier: 25                                              # Electric field barrier for electron spectrum. Nothing will be plotted under this value.
   normalise_spectra: true                                     # Apply normalisation to simulated spectra.
   normalisation_method: recoil                                # Options: recoil, gamma_peak, electron_area
+  gamma_peak: 257  # Peak for normalisation
+  gamma_range: 3   # Range for normalisation
   show_exp_spectra: true
   elec_eff_params: [1.273, -1.541, -0.943, -0.128, -0.00137]
   gam_eff_params: [1.866, -0.627, -0.201, 0.246, -0.0779]
