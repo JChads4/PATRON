@@ -18,6 +18,7 @@ files:
 experiment:
  hv_barrier: 38
  normalise_spectra: true
+ normalisation_method: recoil
  show_exp_spectra: true
  elec_eff_params: [1.273, -1.541, -0.943, -0.128, -0.00137]
  gam_eff_params: [1.866, -0.627, -0.201, 0.246, -0.0779]

@@ -321,7 +321,7 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
                          exp_electron_spectrum = None, exp_gamma_spectrum = None,
                          hv_barrier =25,
                          gamma_peak = 120, gamma_range = 5,
-                         show_exp_spectra = False, normalise_simulated_spectra=False,  total_recoils=None,
+                         show_exp_spectra = False, normalise_simulated_spectra=False, normalisation_method='recoil', total_recoils=None,
                          theory_gR_vals=[0.4, 0.36, 0.32, 0.28], theory_gK_vals=[-0.0225, 1.001]):
    
    theory_combinations = [(gK - gR, gK, gR) for gK in theory_gK_vals for gR in theory_gR_vals]
@@ -433,70 +433,76 @@ def plot_combined_spectra(dfs, elem_sym, gamma_bin_width=2, electron_bin_width=3
 
            
        # LOAD ELECTRONS
-       if show_exp_spectra:
+       if show_exp_spectra or normalise_simulated_spectra:
            energy, counts = None, None
            genergy, gcounts = None, None
-           
+
            if exp_electron_spectrum:
                data = np.loadtxt(exp_electron_spectrum)
                energy, counts = data[:, 0], data[:, 1]
                counts[counts < 0] = 0
                mask = energy > hv_barrier
                energy, counts = energy[mask], counts[mask]
-               
-               # CHISQ STUFF for electrons    
-               exp_binned, _ = np.histogram(energy, bins=electron_bin_edges, weights=counts)
-               elec_chisq = calculate_chisq(exp_binned, electron_binned_intensity)
-               elec_chisq_values.append(elec_chisq)
-           
+
+               if show_exp_spectra:
+                   # CHISQ STUFF for electrons
+                   exp_binned, _ = np.histogram(energy, bins=electron_bin_edges, weights=counts)
+                   elec_chisq = calculate_chisq(exp_binned, electron_binned_intensity)
+                   elec_chisq_values.append(elec_chisq)
+
            if exp_gamma_spectrum:
                # LOAD GAMMAS
                gdata = np.loadtxt(exp_gamma_spectrum)
                genergy, gcounts = gdata[:, 0], gdata[:, 1]
                gcounts[gcounts < 0] = 0
-               
-               # CHISQ for gammas
-               gam_exp_binned, _ = np.histogram(genergy, bins=gamma_bin_edges, weights=gcounts)
-               gam_chisq = calculate_chisq(gam_exp_binned, gamma_binned_intensity)
-               gam_chisq_values.append(gam_chisq)
+
+               if show_exp_spectra:
+                   # CHISQ for gammas
+                   gam_exp_binned, _ = np.histogram(genergy, bins=gamma_bin_edges, weights=gcounts)
+                   gam_chisq = calculate_chisq(gam_exp_binned, gamma_binned_intensity)
+                   gam_chisq_values.append(gam_chisq)
            
            gk_gr_value = float(label.split('_')[-1])
            gk_gr_chisq_values.append(gk_gr_value)
            
            # PERFORM NORMALISATION
-           if normalise_simulated_spectra and exp_gamma_spectrum:
-            #    # Gamma peak normalisation
-            #    norm_gamma_counts = sum_counts_in_range(gcounts, genergy, (gamma_peak-gamma_range, gamma_peak+gamma_range))
-            #    norm_gamma_area = norm_gamma_counts
-            #    _, gamma_binned_intensity, _, electron_binned_intensity = normalise_spectra_by_gamma_area(
-            #        electron_bin_edges, electron_binned_intensity, gamma_bin_edges, gamma_binned_intensity, 
-            #        gamma_peak, gamma_range, norm_gamma_area, f'{gk_gr_value:.2f}'
-            #    )
-               # Electron total area normalisation
-            #    total_electron_counts = sum_counts_in_range(counts, energy, (77, 500))
-            #    total_electron_area = total_electron_counts * np.diff(energy)[0]
-            #    electron_binned_intensity, gamma_binned_intensity = normalise_spectra(electron_bin_edges[:-1], electron_binned_intensity, gamma_binned_intensity, total_electron_area)
-
-            # --- Normalise by recoil number ---
-            # sim_recoils: total simulated recoils pulled from the caller
-                if total_recoils is None:
-                    raise ValueError("total_recoils must be provided for recoil‐number normalisation")
-                sim_recoils = total_recoils
-
-                # exp_recoils: sum of your experimental electrons above the HV barrier
-                exp_recoils = sum_counts_in_range(counts, energy, (hv_barrier, energy.max()))
-
-                # now scale both spectra
-                electron_binned_intensity, gamma_binned_intensity = normalise_spectra_by_recoils(
-                    electron_binned_intensity,
-                    gamma_binned_intensity,
-                    sim_recoils,
-                    exp_recoils
-                )
-
-            
-
-            
+           if normalise_simulated_spectra:
+               if normalisation_method == 'gamma_peak':
+                   if genergy is None or gcounts is None:
+                       raise ValueError('Experimental gamma spectrum required for gamma_peak normalisation')
+                   norm_gamma_counts = sum_counts_in_range(gcounts, genergy, (gamma_peak - gamma_range, gamma_peak + gamma_range))
+                   norm_gamma_area = norm_gamma_counts
+                   _, gamma_binned_intensity, _, electron_binned_intensity = normalise_spectra_by_gamma_area(
+                       electron_bin_edges, electron_binned_intensity, gamma_bin_edges, gamma_binned_intensity,
+                       gamma_peak, gamma_range, norm_gamma_area, f'{gk_gr_value:.2f}'
+                   )
+               elif normalisation_method == 'electron_area':
+                   if energy is None or counts is None:
+                       raise ValueError('Experimental electron spectrum required for electron_area normalisation')
+                   total_electron_counts = sum_counts_in_range(counts, energy, (hv_barrier, energy.max()))
+                   total_electron_area = total_electron_counts * np.diff(energy)[0]
+                   electron_binned_intensity, gamma_binned_intensity = normalise_spectra(
+                       electron_bin_edges[:-1], electron_binned_intensity, gamma_binned_intensity, total_electron_area
+                   )
+               elif normalisation_method == 'recoil':
+                   if total_recoils is None:
+                       raise ValueError('total_recoils must be provided for recoil-number normalisation')
+                   if energy is None or counts is None:
+                       raise ValueError('Experimental electron spectrum required for recoil normalisation')
+                   sim_recoils = total_recoils
+                   exp_recoils = sum_counts_in_range(counts, energy, (hv_barrier, energy.max()))
+                   electron_binned_intensity, gamma_binned_intensity = normalise_spectra_by_recoils(
+                       electron_binned_intensity,
+                       gamma_binned_intensity,
+                       sim_recoils,
+                       exp_recoils
+                   )
+               else:
+                   raise ValueError(f'Unknown normalisation method: {normalisation_method}')
+   
+           
+   
+           
 
 
 
