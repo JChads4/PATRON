@@ -94,6 +94,7 @@ def main():
         gamma_range=config['nucleus']['gamma_range'],
         show_exp_spectra=config['experiment']['show_exp_spectra'],
         normalise_simulated_spectra=config['experiment']['normalise_spectra'],
+        normalisation_method=config['experiment'].get('normalisation_method', 'recoil'),
         total_recoils=config['nucleus']['total_recoils'],
         theory_gR_vals=config['theory']['gR_vals'],
         theory_gK_vals=config['theory']['gK_vals']

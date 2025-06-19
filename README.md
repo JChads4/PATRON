@@ -75,7 +75,8 @@ files:
 
 experiment:
   hv_barrier: 25                                              # Electric field barrier for electron spectrum. Nothing will be plotted under this value.
-  normalise_spectra: true                                     # Normalisation through comparison of exp/ sim gamma peak areas. 
+  normalise_spectra: true                                     # Apply normalisation to simulated spectra.
+  normalisation_method: recoil                                # Options: recoil, gamma_peak, electron_area
   show_exp_spectra: true
   elec_eff_params: [1.273, -1.541, -0.943, -0.128, -0.00137]
   gam_eff_params: [1.866, -0.627, -0.201, 0.246, -0.0779]
